@@ -37,7 +37,7 @@ hs_err_pid*.log
 *.7z
 
 # 不要上傳的設定檔 (例如可能包含敏感資訊)
-*.properties
+#*.properties
 *.env
 
 # 其他臨時檔案
