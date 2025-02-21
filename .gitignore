@@ -1,0 +1,44 @@
+# 編譯輸出目錄
+target/
+out/
+
+# IDE 設定
+.idea/
+.vscode/
+.nbproject/
+
+# 日誌與臨時檔案
+*.log
+*.tmp
+*.bak
+
+# 作業系統自動產生的檔案
+.DS_Store
+Thumbs.db
+
+# Maven 本地倉庫
+.mvn/
+
+# 編譯中間產物
+*.class
+
+# 套件安裝時可能產生的目錄
+node_modules/
+lib/
+
+# Java 特定檔案
+hs_err_pid*.log
+*.hprof
+
+# JAR、WAR、ZIP 及其他可編譯的二進位檔案
+*.jar
+*.war
+*.zip
+*.7z
+
+# 不要上傳的設定檔 (例如可能包含敏感資訊)
+*.properties
+*.env
+
+# 其他臨時檔案
+*.iml

@@ -1,0 +1,16 @@
+# 統一所有文本檔案為 LF
+* text eol=lf
+
+# 針對特定檔案類型設定行結束符號
+*.sh text eol=lf
+*.java text eol=lf
+*.xml text eol=lf
+*.txt text eol=lf
+*.csv text eol=lf
+
+# 如果有 Windows 專用的批次檔，可以使用 CRLF
+*.bat text eol=crlf
+
+# 對二進位檔案設定
+*.model -text
+*.bin -text
