@@ -13,11 +13,38 @@
     </properties>
     
     <dependencies>
-        <!-- WEKA -->
+        <!-- Weka 依賴，僅保留純 Java 的 netlib 實現 -->
         <dependency>
             <groupId>nz.ac.waikato.cms.weka</groupId>
             <artifactId>weka-stable</artifactId>
             <version>3.8.6</version>
+            <exclusions>
+                <!-- 排除 netlib 的原生依賴，僅使用純 Java 版本 -->
+                <exclusion>
+                    <groupId>com.github.fommil.netlib</groupId>
+                    <artifactId>all</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.fommil.netlib</groupId>
+                    <artifactId>netlib-native_ref-osx-x86_64</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.fommil.netlib</groupId>
+                    <artifactId>netlib-native_ref-linux-x86_64</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.fommil.netlib</groupId>
+                    <artifactId>netlib-native_ref-win-x86_64</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- 明確添加 netlib-java 純 Java 版本 -->
+        <dependency>
+            <groupId>com.github.fommil.netlib</groupId>
+            <artifactId>core</artifactId>
+            <version>1.1.2</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Gson 用於處理 JSON -->

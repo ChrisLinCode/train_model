@@ -77,8 +77,9 @@ public class Train_model {
             double[] wordVector = cache.computeIfAbsent(token, t -> {
                 List<Float> vecList = fastText.getVector(t);
                 if (vecList == null || vecList.isEmpty()) {
-                    return null;
+                    return new double[vectorSize]; // 返回零向量，避免 null 指針問題
                 }
+
                 double[] arr = new double[vecList.size()];
                 for (int j = 0; j < vecList.size(); j++) {
                     arr[j] = vecList.get(j);
@@ -181,6 +182,7 @@ public class Train_model {
      */
     private static Instances vectorizeData(Instances data, JFastText fastText) {
         int vectorSize = fastText.getVector("示例文本").size();
+        System.out.println("vectorSize: " + vectorSize);
         ArrayList<Attribute> attributes = new ArrayList<>();
         for (int i = 0; i < vectorSize; i++) {
             attributes.add(new Attribute("vec_" + i));
@@ -259,13 +261,18 @@ public class Train_model {
     }
 
     // ============ 主程式 ============
-    //復原線
     public static void main(String[] args) {
-        String inputCsvPath = "src/main/resources/inputdata.csv";
+        String inputCsvPath = "src/main/resources/inputdata_v.csv";
         String unifiedModelPath = "src/main/resources/model.model";
         String processedCsvPath = "src/main/resources/processed_data.csv";
         String outputTxtPath = "src/main/resources/data_exploration_results.txt";
         String fastTextModelPath = "D:/NCU/weka/embedding/fasttext_model_300.bin";
+        try {
+            Class.forName("com.github.fommil.netlib.BLAS");
+            System.out.println("Netlib BLAS is available.");
+        } catch (ClassNotFoundException e) {
+            System.out.println("Netlib BLAS not found, using pure Java implementation.");
+        }
 
         long startTime = System.currentTimeMillis();
         try {
@@ -282,7 +289,6 @@ public class Train_model {
             } catch (IOException e) {
                 System.out.println("Failed to clear file: " + e.getMessage());
             }
-
             // 資料探索（類別分布、文本長度、缺失值檢查）
             DataExploration.analyzeClassDistribution(data, outputTxtPath);
             DataExploration.analyzeTextLength(data, outputTxtPath);
@@ -321,7 +327,7 @@ public class Train_model {
             // 利用交叉驗證評估模型，確保每個 fold 中僅在訓練階段應用過濾器
             Evaluation eval = new Evaluation(vectorizedData);
             int numFolds = 10;
-            eval.crossValidateModel(filteredClassifier, vectorizedData, numFolds, new Random(7));
+            eval.crossValidateModel(filteredClassifier, vectorizedData, numFolds, new Random(8));
 
             System.out.println("=== Summary ===");
             System.out.println(eval.toSummaryString());
@@ -337,6 +343,8 @@ public class Train_model {
 
             // 最後使用整個資料集訓練模型
             filteredClassifier.buildClassifier(vectorizedData);
+            eval.evaluateModel(filteredClassifier, vectorizedData);
+            System.out.println("Final Model Accuracy: " + eval.pctCorrect() + "%");
 
             List<String> classValues = new ArrayList<>();
             for (int i = 0; i < data.numClasses(); i++) {
@@ -439,34 +447,21 @@ public class Train_model {
             return instance;
         }
 
-        /**
-         * 預處理輸入文本，這裡以句子為單位平行處理後整合
-         */
         private Instances preprocessData(String data) throws Exception {
+            // 建立與訓練階段相同的屬性結構
             ArrayList<Attribute> attributes = new ArrayList<>();
             attributes.add(new Attribute("text", (List<String>) null));
-            attributes.add(new Attribute("class", (List<String>) null));
+            attributes.add(new Attribute("class", new ArrayList<>(classValues)));
             Instances processedData = new Instances("ProcessedData", attributes, 1);
             processedData.setClassIndex(processedData.numAttributes() - 1);
 
-            String[] sentences = data.split("\\.");
-            ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-            List<Future<String>> futures = new ArrayList<>();
-            for (String sentence : sentences) {
-                futures.add(executor.submit(() -> preprocessTextCommon(sentence)));
+            String processedText = preprocessTextCommon(data);
+            if (processedText.isEmpty()) {
+                processedText = "empty";
             }
-            StringBuilder sb = new StringBuilder();
-            for (Future<String> future : futures) {
-                try {
-                    sb.append(future.get()).append(" ");
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
-            }
-            executor.shutdown();
-            String processedText = sb.toString().trim();
             double[] values = new double[2];
-            values[0] = processedData.attribute(0).addStringValue(processedText.isEmpty() ? "empty" : processedText);
+            values[0] = processedData.attribute(0).addStringValue(processedText);
+            // 類別未知，設為缺失值
             values[1] = Utils.missingValue();
             processedData.add(new DenseInstance(1.0, values));
             return processedData;
