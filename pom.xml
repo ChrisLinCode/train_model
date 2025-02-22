@@ -19,25 +19,7 @@
             <artifactId>weka-stable</artifactId>
             <version>3.8.6</version>
         </dependency>
-        <!-- stanford.nlp -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>4.5.7</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>4.5.7</version>
-            <classifier>models</classifier>
-        </dependency>
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>4.5.7</version>
-            <classifier>models-chinese</classifier>
-        </dependency>
-        
+
         <!-- Gson 用於處理 JSON -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -61,6 +43,12 @@
             <groupId>com.github.vinhkhuc</groupId>
             <artifactId>jfasttext</artifactId>
             <version>0.5</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.huaban</groupId>
+            <artifactId>jieba-analysis</artifactId>
+            <version>1.0.2</version>
         </dependency>
 
 
