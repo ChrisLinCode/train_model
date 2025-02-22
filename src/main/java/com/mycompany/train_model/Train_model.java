@@ -27,8 +27,11 @@ import weka.classifiers.lazy.IBk;
 import weka.classifiers.functions.MultilayerPerceptron;
 
 import com.github.jfasttext.JFastText;
+import com.huaban.analysis.jieba.WordDictionary;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.MultiFilter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Train_model {
 
@@ -267,12 +270,9 @@ public class Train_model {
         String processedCsvPath = "src/main/resources/processed_data.csv";
         String outputTxtPath = "src/main/resources/data_exploration_results.txt";
         String fastTextModelPath = "D:/NCU/weka/embedding/fasttext_model_300.bin";
-        try {
-            Class.forName("com.github.fommil.netlib.BLAS");
-            System.out.println("Netlib BLAS is available.");
-        } catch (ClassNotFoundException e) {
-            System.out.println("Netlib BLAS not found, using pure Java implementation.");
-        }
+
+        Path path = Paths.get("src/main/resources/userdict.txt");
+        WordDictionary.getInstance().loadUserDict(path);
 
         long startTime = System.currentTimeMillis();
         try {
@@ -327,7 +327,7 @@ public class Train_model {
             // 利用交叉驗證評估模型，確保每個 fold 中僅在訓練階段應用過濾器
             Evaluation eval = new Evaluation(vectorizedData);
             int numFolds = 10;
-            eval.crossValidateModel(filteredClassifier, vectorizedData, numFolds, new Random(8));
+            eval.crossValidateModel(filteredClassifier, vectorizedData, numFolds, new Random(9));
 
             System.out.println("=== Summary ===");
             System.out.println(eval.toSummaryString());
@@ -337,6 +337,8 @@ public class Train_model {
             System.out.println("Recall: " + eval.weightedRecall());
             System.out.println("F-Measure: " + eval.weightedFMeasure());
             System.out.println("ROC Area: " + eval.weightedAreaUnderROC());
+            // 使用 Weka 的 Evaluation 顯示混淆矩陣
+            System.out.println(eval.toMatrixString("=== Confusion Matrix ==="));
 
             // 儲存類別標籤
             saveLabelsToFile(data);
@@ -350,7 +352,21 @@ public class Train_model {
             for (int i = 0; i < data.numClasses(); i++) {
                 classValues.add(data.classAttribute().value(i));
             }
-            UnifiedModel unifiedModel = new UnifiedModel(fastText, filteredClassifier, classValues);
+
+            // 讀取 userdict.txt 內容
+            String userDictPath = "src/main/resources/userdict.txt";
+            List<String> userDictContent = new ArrayList<>();
+            try (BufferedReader reader = new BufferedReader(new FileReader(userDictPath))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    userDictContent.add(line.trim());
+                }
+                System.out.println("User dictionary loaded from: " + userDictPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            UnifiedModel unifiedModel = new UnifiedModel(fastText, filteredClassifier, classValues, userDictContent);
             UnifiedModel.saveModel(unifiedModel, unifiedModelPath);
 
         } catch (Exception e) {
@@ -382,19 +398,42 @@ public class Train_model {
     public static class UnifiedModel implements Serializable {
 
         private final Classifier classifier;
-        // fastText 無法序列化
         private transient JFastText fastText;
         private final List<String> classValues;
         private final ConcurrentHashMap<String, double[]> vectorCache = new ConcurrentHashMap<>();
+        private final List<String> userDictContent; // 新增用於保存詞典內容
 
-        public UnifiedModel(JFastText fastText, Classifier classifier, List<String> classValues) {
+        public UnifiedModel(JFastText fastText, Classifier classifier, List<String> classValues, List<String> userDictContent) {
             this.fastText = fastText;
             this.classifier = classifier;
             this.classValues = classValues;
+            this.userDictContent = userDictContent; // 初始化詞典內容
         }
 
         public void setFastText(JFastText fastText) {
             this.fastText = fastText;
+        }
+
+        // 加載詞典內容到 Jieba 的 WordDictionary
+        public void loadUserDict() {
+            if (userDictContent != null) {
+                // 創建臨時文件以加載自定義詞典
+                try {
+                    File tempFile = File.createTempFile("userdict", ".txt");
+                    tempFile.deleteOnExit(); // 程式結束時自動刪除
+                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                        for (String word : userDictContent) {
+                            writer.write(word);
+                            writer.newLine();
+                        }
+                    }
+                    Path path = Paths.get(tempFile.getAbsolutePath());
+                    WordDictionary.getInstance().loadUserDict(path);
+                    System.out.println("User dictionary loaded successfully."+ tempFile.getAbsolutePath() );
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         /**
@@ -476,7 +515,9 @@ public class Train_model {
 
         public static UnifiedModel loadModel(String filePath) throws IOException, ClassNotFoundException {
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath))) {
-                return (UnifiedModel) ois.readObject();
+                UnifiedModel model = (UnifiedModel) ois.readObject();
+                model.loadUserDict(); // 在加載模型時自動加載詞典
+                return model;
             }
         }
     }

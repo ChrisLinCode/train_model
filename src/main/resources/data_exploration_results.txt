@@ -1,13 +1,13 @@
 Class Distribution:
 行/汽車: 65
-行/台鐵: 65
-行/高鐵: 65
-行/自行車: 65
-行/機車: 65
-行/飛機: 65
-行/其它: 81
+行/台鐵: 64
+行/高鐵: 64
+行/自行車: 64
+行/機車: 64
+行/其它: 80
+行/飛機: 63
 
-Average Text Length: 8.577494692144374
+Average Text Length: 8.549568965517242
 
 Number of Missing Values: 0
 
